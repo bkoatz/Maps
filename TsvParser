@@ -1,0 +1,131 @@
+package maps;
+
+import java.io.*;
+import java.util.NoSuchElementException;
+
+/**
+ * This is my TsvParser class. It has one static method.
+ *
+ * @author bkoatz
+ */
+public class TsvParser{
+
+    /**
+     * This method will search through a file and return either "Search Item Not
+     * Found" if there is no instance of the item you are searching for in the file
+     * you are searching, or the infomration you are looking for in connection to
+     * that item, if that item does exist.
+     *
+     * @param raF                    the random access file you are searching in
+     * @param top                    the lowest-numbered byte within your search area
+     * @param bottom                 the highest-numbered byte within your search
+     *                               area
+     * @param lengthOfFile           the length of the file, e.g. the maximum length
+     *                               of the searching space
+     * @param toFind                 the string you are trying to find
+     * @param columnToFind           the column the string you are trying to find
+     *                               is in.
+     * @param columnsToReturn        the integer array containing the columns of
+     *                               information you are trying to return
+     * @return                       the information at the indices in columnToReturn
+     * @throws java.io.IOException
+     * @throws NoSuchElementException
+     */
+    public static String[] searchFile(RandomAccessFile raF, long top, long bottom, long lengthOfFile,
+            String toFind, int columnToFind, Integer[] columnsToReturn) throws NoSuchElementException, IOException{
+
+        String[] toReturn = new String[columnsToReturn.length];
+
+        //If you are within searchable bounds
+        if(top <= lengthOfFile && top >= 0 && bottom >= 0 && top <= bottom){
+
+            long mid = (top + bottom)/2;
+
+            raF.seek(mid);
+            raF.readLine();
+            String toSearch = raF.readLine();
+            //If you parse an end of file
+            if(toSearch == null){
+
+                mid--;
+                raF.seek(mid);
+                char tempChar = (char) raF.readByte();
+                while(!(tempChar == '\n')){
+
+                    mid--;
+                    raF.seek(mid);
+                    tempChar = (char) raF.readByte();
+
+
+                }
+                String testLine = raF.readLine();
+                String[] testArray = testLine.split("[\t]");
+                //check if the line before it was the line you were looking
+                //for
+                if(testArray[columnToFind].equals(toFind)){
+
+                    for(int i = 0; i < columnsToReturn.length; i ++){
+
+                       if(columnsToReturn[i] > testArray.length){
+
+                            throw new NoSuchElementException();
+
+                        }
+                        toReturn[i] = testArray[columnsToReturn[i]];
+
+                    }
+
+                }
+                //else you're done
+                else{
+
+                    throw new NoSuchElementException();
+
+                }
+                return toReturn;
+
+            }
+            String[] searchArray = toSearch.split("[\t]");
+            int compared = toFind.compareTo(searchArray[columnToFind]);
+            //If they're the same return the correct info
+            if(compared == 0){
+
+                for(int i = 0; i < columnsToReturn.length; i ++){
+
+                    if(columnsToReturn[i] > searchArray.length){
+
+                            throw new NoSuchElementException();
+
+                    }
+                    toReturn[i] = searchArray[columnsToReturn[i]];
+
+                }
+                return toReturn;
+
+            }
+            //Else knock out half of the file in your search
+            else if(compared < 0){
+
+                toReturn =  searchFile(raF, top, mid - 1, lengthOfFile, toFind, columnToFind, columnsToReturn);
+
+            }
+            else{
+
+                toReturn = searchFile(raF, mid + 1, bottom, lengthOfFile, toFind, columnToFind, columnsToReturn);
+
+            }
+
+        }
+        //If you reached unsearchable bounds you didn't find it.
+        else{
+
+            throw new NoSuchElementException();
+
+        }
+
+        return toReturn;
+
+    }
+
+
+}
